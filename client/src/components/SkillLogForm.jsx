@@ -231,7 +231,7 @@ const SkillLogForm = ({ user, setAllEntries }) => {
     console.log('Submitting entry:', newEntry);
 
     try {
-      const response = await fetch('http://localhost:8000/api/submit-entries', {
+      const response = await fetch('https://practice-log.onrender.com/api/submit-entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEntry),
@@ -545,3 +545,4 @@ toastError: {
 
 
 export default SkillLogForm;
+
