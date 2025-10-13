@@ -9,13 +9,13 @@ const getEntries = async (req, res) => {
         user: {
           select: {
             email: true,
-            name: true
-          }
-        }
+            name: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
     res.json(entries);
   } catch (error) {
@@ -98,3 +98,4 @@ module.exports = {
   getEntries,
   submitEntry
 };
+
