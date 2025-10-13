@@ -89,6 +89,7 @@ const skillOptions = [
   { value: 'Typescript', label: 'Typescript' },
   { value: 'NextJS', label: 'NextJS' },
   { value: 'TailwindCSS', label: 'TailwindCSS' },
+  { value: 'Other', label: 'Other' }
 ];
 
 
@@ -136,7 +137,16 @@ const SkillLogForm = ({ user, setAllEntries }) => {
   const [otherResult, setOtherResult] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState('success'); 
+  const [toastType, setToastType] = useState('success');
+  const [otherSkill, setOtherSkill] = useState(''); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+  useEffect(() => {
+  const spinnerStyleTag = document.createElement('style');
+  spinnerStyleTag.innerHTML = styles.spinnerKeyframes;
+  document.head.appendChild(spinnerStyleTag);
+}, []);
 
 
   useEffect(() => {
@@ -191,22 +201,64 @@ const SkillLogForm = ({ user, setAllEntries }) => {
     ["Attend Training", "Work on a Project", "On Job"].includes(type)
   );
 
+  const handleStartDateChange = (e) => {
+  const selectedDate = e.target.value;
+  const currentYear = new Date().getFullYear();
+
+  if (selectedDate) {
+    const selectedYear = new Date(selectedDate).getFullYear();
+    if (selectedYear !== currentYear) {
+      alert(`Please select a date within the current year: ${currentYear}`);
+      setStartDate('');
+      return;
+    }
+  }
+  setStartDate(selectedDate);
+};
+
+const handleEndDateChange = (e) => {
+  const selectedDate = e.target.value;
+  const currentYear = new Date().getFullYear();
+
+  if (selectedDate) {
+    const selectedYear = new Date(selectedDate).getFullYear();
+    if (selectedYear !== currentYear) {
+      alert(`Please select a date within the current year: ${currentYear}`);
+      setEndDate('');
+      return;
+    }
+  }
+  setEndDate(selectedDate);
+};
+
+
   const handleCheckboxChange = (type) => {
     setPracticeType(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  setIsSubmitting(true); // Start loading
+
+  try {
     if (practiceType.length === 0) {
-    setPracticeTypeError("Please select at least one type of practice..");
-    return;
+      setPracticeTypeError("Please select at least one type of practice.");
+      setIsSubmitting(false);
+      return;
     } else {
-    setPracticeTypeError('');
+      setPracticeTypeError('');
     }
 
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (start > end) {
+      alert("Start date cannot be after end date.");
+      setIsSubmitting(false);
+      return;
+    }
 
     const updatedPracticeTypes = practiceType.map(type =>
       type === "Other" && otherPractice ? otherPractice : type
@@ -218,71 +270,69 @@ const SkillLogForm = ({ user, setAllEntries }) => {
 
     const newEntry = {
       userEmail: user?.email || '',
-      skills: selectedSkills.map(s => s.value),
+      skills: selectedSkills.map(s => s.value === 'Other' && otherSkill ? otherSkill : s.value),
       hoursSpent,
       startDate,
       endDate,
       practiceType: updatedPracticeTypes,
-      verifier: needsVerifier ? verifier : null,
+      verifierName: needsVerifier ? verifier : null,
       notes,
       resultsAchieved: updatedResults,
     };
 
-    console.log('Submitting entry:', newEntry);
+    const fetchWithTimeout = (url, options, timeout = 5000) => {
+      return Promise.race([
+        fetch(url, options),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Server timeout (5 seconds). Please try again.')), timeout)
+        )
+      ]);
+    };
 
-    try {
-      const response = await fetch('https://practice-log.onrender.com/api/submit-entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEntry),
-      });
+    const response = await fetchWithTimeout('https://practice-log.onrender.com/api/submit-entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEntry),
+    });
 
-      const text = await response.text();
-      console.log('Raw response text:', text);
+    const text = await response.text();
+    const data = JSON.parse(text);
 
-      let data;
-      try {
-        data = JSON.parse(text);
-        console.log('Parsed JSON:', data);
-      } catch (err) {
-        console.error('Failed to parse JSON:', err);
-        alert("Server did not return valid JSON.");
-        return;
-      }
-
-      if (!response.ok) {
-        console.error('Server error:', data.error || response.statusText);
-        alert(data.error || 'Failed to create entry');
-        return;
-      }
-
-      setToastMessage('✅ Entry created successfully!');
-      setShowToast(true);
-      setTimeout(() => {
-      setShowToast(false);
-      }, 4000);
-
-      setAllEntries(prev => [...prev, data.entry]);
-
-      
-      setSelectedSkills([]);
-      setHoursSpent('');
-      setStartDate('');
-      setEndDate('');
-      setPracticeType([]);
-      setOtherPractice('');
-      setVerifier('');
-      setNotes('');
-      setResultsAchieved([]);
-      setOtherResult('');
-    } catch (error) {
-      console.error('Network error:', error);
-      setToastMessage(`❌ ${error.message || 'Network error occurred!'}`);
-      setToastType('error');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 4000);
+    if (!response.ok) {
+      alert(data.error || 'Failed to create entry.');
+      setIsSubmitting(false);
+      return;
     }
-  };
+
+    setToastMessage('✅ Entry created successfully!');
+    setToastType('success');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+
+    setAllEntries(prev => [...prev, data.entry]);
+
+    // Reset form
+    setSelectedSkills([]);
+    setHoursSpent('');
+    setStartDate('');
+    setEndDate('');
+    setPracticeType([]);
+    setOtherPractice('');
+    setVerifier('');
+    setNotes('');
+    setResultsAchieved([]);
+    setOtherResult('');
+    setOtherSkill('');
+  } catch (error) {
+    setToastMessage(`❌ ${error.message || 'Network error occurred!'}`);
+    setToastType('error');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  } finally {
+    setIsSubmitting(false); // End loading
+  }
+};
+
 
 
   return (
@@ -292,47 +342,77 @@ const SkillLogForm = ({ user, setAllEntries }) => {
       <p style={styles.subtext}>Use this form to enter practice log.</p>
       <form onSubmit={handleSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label style={styles.label}><b>Skill(s)</b></label>
+          <label style={styles.label}><b>Skill(s) *</b></label>
           <Select
-            isMulti
-            options={skillOptions}
-            value={selectedSkills}
-            onChange={setSelectedSkills}
-            placeholder="Select your skills..."
-            required style={styles.input}
+          isMulti
+          options={skillOptions}
+          value={selectedSkills}
+          onChange={setSelectedSkills}
+          placeholder="Select your skills..."
+          required
           />
+
+        {selectedSkills.some(skill => skill.value === 'Other') && (
+        <input
+        type="text"
+        value={otherSkill}
+        onChange={(e) => setOtherSkill(e.target.value)}
+        placeholder="Please specify other skill"
+        required
+        style={{ ...styles.input, marginTop: '10px' }}
+        />
+        )}
         </div>
 
         <div style={styles.formGroup}>
-          <label style={styles.label}><b>Hours Spent in Practice/Applying Skill</b></label>
+          <label style={styles.label}><b>Hours Spent in Practice/Applying Skill *</b></label>
           <input
-            type="number"
-            value={hoursSpent}
-            onChange={(e) => setHoursSpent(e.target.value)}
-            placeholder="Enter hours spent for this skill practice..."
-            required
-            style={styles.input}
+          type="number"
+          value={hoursSpent}
+          onChange={(e) => {
+          const val = e.target.value;
+          if (val === '' || (Number(val) > 0 && /^\d+$/.test(val))) {
+          setHoursSpent(val);
+          }
+          }}
+          onWheel={(e) => e.target.blur()}
+          placeholder="Enter hours spent for this skill practice..."
+          required
+          style={styles.input}
           />
         </div>
 
       
         <div style={styles.formGroup}>
-          <label style={styles.label}><b>Date(s) or Date Range</b></label>
-          <div style={styles.dateRow}>
-            <div style={styles.dateColumn}>
-              <label>Start Date:</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required style={styles.input} />
-            </div>
-            <div style={styles.dateColumn}>
-              <label>End Date:</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required style={styles.input} />
-            </div>
-          </div>
-        </div>
+  <label style={styles.label}><b>Date(s) or Date Range *</b></label>
+  <div style={styles.dateRow}>
+    <div style={styles.dateColumn}>
+      <label>Start Date:</label>
+      <input
+        type="date"
+        value={startDate}
+        onChange={handleStartDateChange}
+        required
+        style={styles.input}
+      />
+    </div>
+    <div style={styles.dateColumn}>
+      <label>End Date:</label>
+      <input
+        type="date"
+        value={endDate}
+        onChange={handleEndDateChange}
+        required
+        style={styles.input}
+      />
+    </div>
+  </div>
+</div>
+
 
       
         <div style={styles.formGroup}>
-        <label style={styles.label}><b>Types of Practice</b></label>
+        <label style={styles.label}><b>Types of Practice *</b></label>
         {practiceTypes.map((type) => (
           <label key={type} style={styles.checkboxLabel}>
           <input
@@ -362,15 +442,22 @@ const SkillLogForm = ({ user, setAllEntries }) => {
 
         {needsVerifier && (
         <div style={styles.formGroup}>
-        <label style={styles.label}><b>Verifier Needed</b></label>
+        <label style={styles.label}><b>Verifier Needed *</b></label>
         <input
-        type="text"
-        value={verifier}
-        onChange={(e) => setVerifier(e.target.value)}
-        placeholder="Enter your Verifier name:"
-        required
-        style={styles.input}
-        />
+  type="text"
+  value={verifier}
+  onChange={(e) => {
+    const val = e.target.value;
+    // Only allow alphabets and spaces
+    if (/^[a-zA-Z\s]*$/.test(val)) {
+      setVerifier(val);
+    }
+  }}
+  placeholder="Enter your Verifier name:"
+  required
+  style={styles.input}
+/>
+
        <p style={styles.verifierNote}>
         Verifier is required if you select "Attend Training", "Work on a Project", or "On Job".
       </p>
@@ -412,8 +499,23 @@ const SkillLogForm = ({ user, setAllEntries }) => {
 </div>
 
 
-        <button type="submit" style={styles.submitButton}>Submit Entry</button>
+       <button
+  type="submit"
+  style={{
+    ...styles.submitButton,
+    backgroundColor: isSubmitting ? 'gray' : 'brown',
+    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+  }}
+  disabled={isSubmitting}
+>
+  {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+</button>
       </form>
+      {isSubmitting && (
+  <div style={styles.spinner}>
+    <div style={styles.spinnerCircle}></div>
+  </div>
+)}
       {showToast && (
       <div style={{ ...styles.toast, ...(toastType === 'error' ? styles.toastError : styles.toastSuccess) }}>
       {toastMessage}
@@ -441,6 +543,29 @@ const styles = {
     textAlign: 'center',
     color: 'brown',
   },
+  spinner: {
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  zIndex: 1000,
+},
+
+spinnerCircle: {
+  border: '4px solid #f3f3f3',
+  borderTop: '4px solid brown',
+  borderRadius: '50%',
+  width: '40px',
+  height: '40px',
+  animation: 'spin 1s linear infinite',
+},
+
+spinnerKeyframes: `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`,
   subtext: {
     fontSize: '17px',
     marginBottom: '24px',
@@ -545,4 +670,3 @@ toastError: {
 
 
 export default SkillLogForm;
-
