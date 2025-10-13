@@ -392,3 +392,4 @@ const styles = {
 
 export default ViewEntries;
 
+
