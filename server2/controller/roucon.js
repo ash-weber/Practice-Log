@@ -63,6 +63,11 @@ const submitEntry = async (req, res) => {
       });
     }
 
+    // Ensure skills and practiceType are arrays (for Json fields)
+    const formattedSkills = Array.isArray(skills) ? skills : [skills];
+    const formattedPracticeType = Array.isArray(practiceType) ? practiceType : [practiceType];
+
+    // Convert results to string
     const formattedResults =
       Array.isArray(resultsAchieved)
         ? resultsAchieved.join(', ')
@@ -70,14 +75,15 @@ const submitEntry = async (req, res) => {
           ? resultsAchieved
           : '';
 
+    // Create the entry using formatted arrays
     const newEntry = await prisma.entry.create({
       data: {
         userId: user.id,
-        skills,
+        skills: formattedSkills,
         hoursSpent: hoursSpentInt,
         startDate: startDateObj,
         endDate: endDateObj,
-        practiceType,
+        practiceType: formattedPracticeType,
         verifierName,
         resultsAchieved: formattedResults,
         notes,
@@ -85,6 +91,7 @@ const submitEntry = async (req, res) => {
     });
 
     res.status(201).json({ entry: newEntry });
+
   } catch (error) {
     console.error('Error submitting entry:', error);
     res.status(500).json({ error: 'Failed to submit entry' });
@@ -98,4 +105,5 @@ module.exports = {
   getEntries,
   submitEntry
 };
+
 
