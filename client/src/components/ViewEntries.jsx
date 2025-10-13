@@ -7,21 +7,26 @@ const ViewEntries = ({ userEmail }) => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-useEffect(() => { const fetchEntries = async () => { 
-    try { 
-    const res = await fetch('https://practice-log.onrender.com/api/get-entries'); 
-    if (!res.ok) throw new Error('Failed to fetch entries'); 
-    const data = await res.json(); console.log('Fetched entries:', data); setAllEntries(data); 
-    } 
-    catch (err) { 
-      setError(err.message || 'Error fetching entries'); 
-                } finally 
-    { setLoading(false); } }; fetchEntries(); }, []);
-
+  useEffect(() => {
+    const fetchEntries = async () => {
+      try {
+        const res = await fetch('https://practice-log.onrender.com/api/get-entries');
+        if (!res.ok) throw new Error('Failed to fetch entries');
+        const data = await res.json();
+        console.log('Fetched entries:', data);
+        setAllEntries(data);
+      } catch (err) {
+        setError(err.message || 'Error fetching entries');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEntries();
+  }, []);
 
   // — All hooks must be at top level, before any returns —
 
-   const normalizedUserEmail = useMemo(() => {
+  const normalizedUserEmail = useMemo(() => {
     return (userEmail || localStorage.getItem('userEmail') || '')
       .trim()
       .toLowerCase();
@@ -393,4 +398,3 @@ const styles = {
 };
 
 export default ViewEntries;
-
