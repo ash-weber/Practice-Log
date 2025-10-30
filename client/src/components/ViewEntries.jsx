@@ -10,7 +10,7 @@ const ViewEntries = ({ userEmail }) => {
   useEffect(() => {
     const fetchEntries = async () => {
       try {
-        const res = await fetch('https://practice-log.onrender.com/api/get-entries');
+        const res = await fetch('https://practice-log-9j3d.onrender.com/api/get-entries');
         if (!res.ok) throw new Error('Failed to fetch entries');
         const data = await res.json();
         console.log('Fetched entries:', data);
@@ -398,3 +398,4 @@ const styles = {
 };
 
 export default ViewEntries;
+
