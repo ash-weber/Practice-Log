@@ -289,7 +289,7 @@ const handleSubmit = async (e) => {
       ]);
     };
 
-    const response = await fetchWithTimeout('https://practice-log.onrender.com/api/submit-entries', {
+    const response = await fetchWithTimeout('https://practice-log-9j3d.onrender.com/api/submit-entries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newEntry),
@@ -670,3 +670,4 @@ toastError: {
 
 
 export default SkillLogForm;
+
