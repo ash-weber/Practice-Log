@@ -1,127 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
-import {toast} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-const skillOptions = [
-  { value: 'JavaScript', label: 'JavaScript' },
-  { value: 'AWS', label: 'AWS' },
-  { value: 'API Integration', label: 'API Integration' },
-  { value: 'ASP.NET', label: 'ASP.NET' },
-  { value: 'Adobe Illustrator', label: 'Adobe Illustrator' },
-  { value: 'Adobe Photoshop', label: 'Adobe Photoshop' },
-  { value: 'Adobe InDesign', label: 'Adobe InDesign' },
-  { value: 'Angular', label: 'Angular' },
-  { value: 'BI Modeling', label: 'BI Modeling' },
-  { value: 'Backend Dev', label: 'Backend Dev' },
-  { value: 'Big Data', label: 'Big Data' },
-  { value: 'Brand Development', label: 'Brand Development' },
-  { value: 'Budgeting', label: 'Budgeting' },
-  { value: 'Business Planning and Management', label: 'Business Planning and Management' },
-  { value: 'C Programming', label: 'C Programming' },
-  { value: 'C#', label: 'C#' },
-  { value: 'C++', label: 'C++' },
-  { value: 'CRM', label: 'CRM' },
-  { value: 'CSS', label: 'CSS' },
-  { value: 'Cloud Computing', label: 'Cloud Computing' },
-  { value: 'Cloud Based Tools', label: 'Cloud Based Tools' },
-  { value: 'Communication', label: 'Communication' },
-  { value: 'Content Creation', label: 'Content Creation' },
-  { value: 'Cyber Security', label: 'Cyber Security' },
-  { value: 'Data Analytics/Science', label: 'Data Analytics/Science' },
-  { value: 'DBM', label: 'DBM' },
-  { value: 'Decision Making', label: 'Decision Making' },
-  { value: 'ERP Dev', label: 'ERP Dev' },
-  { value: 'ETL', label: 'ETL' },
-  { value: 'Editing', label: 'Editing' },
-  { value: 'Email and WhatsApp Automation', label: 'Email and WhatsApp Automation' },
-  { value: 'Marketing', label: 'Marketing' },
-  { value: 'Employee Training', label: 'Employee Training' },
-  { value: 'Entity Framework', label: 'Entity Framework' },
-  { value: 'Event Management', label: 'Event Management' },
-  { value: 'ExpressJS', label: 'ExpressJS' },
-  { value: 'React', label: 'React' },
-  { value: 'NodeJS', label: 'NodeJS' },
-  { value: 'MS Excel', label: 'MS Excel'},
-  { value: 'Forecasting', label: 'Forecasting' },
-  { value: 'Frontend Dev', label: 'Frontend Dev' },
-  { value: 'Graphic Design', label: 'Graphic Design' },
-  { value: 'HR Operations', label: 'HR Operations' },
-  { value: 'HTML', label: 'HTML' },
-  { value: 'JS', label: 'JS' },
-  { value: 'KPI Reporting', label: 'KPI Reporting' },
-  { value: 'MS Office 365', label: 'MS Office 365' },
-  { value: 'MySQL', label: 'MySQL' },
-  { value: 'Leadership', label: 'Leadership' },
-  { value: 'Listening', label: 'Listening' },
-  { value: 'Networking', label: 'Networking' },
-  { value: 'Online Advertising', label: 'Online Advertising' },
-  { value: 'PHP', label: 'PHP' },
-  { value: 'Photography', label: 'Photography' },
-  { value: 'PowerBI', label: 'PowerBI' },
-  { value: 'Prisma', label: 'Prisma' },
-  { value: 'Tableau', label: 'Tableau' },
-  { value: 'Python', label: 'Python' },
-  { value: 'SEO Plan', label: 'SEO Plan' },
-  { value: 'RESTful API', label: 'RESTful API' },
-  { value: 'Salesforce', label: 'Salesforce' },
-  { value: 'Software Dev', label: 'Software Dev' },
-  { value: 'Social Media Marketing', label: 'Social Media Marketing' },
-  { value: 'Supply Chain Management', label: 'Supply Chain Management' },
-  { value: 'Tally', label: 'Tally' },
-  { value: 'UI/UX', label: 'UI/UX' },
-  { value: 'Time Management', label: 'Time Management' },
-  { value: 'Video Editing', label: 'Video Editing' },
-  { value: 'XMind', label: 'XMind' },
-  { value: 'Web Dev', label: 'Web Dev' },
-  { value: 'jQuery', label: 'jQuery' },
-  { value: 'AJAX', label: 'AJAX' },
-  { value: 'JWT', label: 'JWT' },
-  { value: 'React Redux', label: 'React Redux' },
-  { value: 'GitHub', label: 'GitHub' },
-  { value: 'MongoDB', label: 'MongoDB' },
-  { value: 'Postman', label: 'Postman' },
-  { value: 'ThunderClient', label: 'ThunderClient' },
-  { value: 'Firebase', label: 'Firebase' },
-  { value: 'Supabase', label: 'Supabase' },
-  { value: 'Java', label: 'Java' },
-  { value: 'PostgreSql', label: 'PostgreSql' },
-  { value: 'Typescript', label: 'Typescript' },
-  { value: 'NextJS', label: 'NextJS' },
-  { value: 'TailwindCSS', label: 'TailwindCSS' },
-  { value: 'Other', label: 'Other' }
-];
-
-
-const practiceTypes = [
-  "Attend Training",
-  "Hands-on Practice",
-  "Work on a Project",
-  "Take Test(s) or Certification",
-  "On Job",
-  "Conducted Workshop",
-  "Teach a Class",
-  "Other",
-];
-
-
-const resultOptions = [
-  { value: 'Improved Productivity', label: 'Improved Productivity' },
-  { value: 'Moved from Beginner to Advanced skill Level', label: 'Moved from Beginner to Advanced skill Level' },
-  { value: 'Moved to Expert Level', label: 'Moved to Expert Level' },
-  { value: 'Gained Conceptual Clarity', label: 'Gained Conceptual Clarity' },
-  { value: 'Increased Confidence', label: 'Increased Confidence' },
-  { value: 'Achieved Certification',  label: 'Achieved Certification' },
-  { value: 'Received Appreciation', label: 'Received Appreciation' },
-  { value: 'Identified New Application Areas', label: 'Identified New Application Areas' },
-  { value: 'Solved a Complex Problem', label: 'Solved a Complex Problem' },
-  { value: 'Demonstrated Skill in Project', label: 'Demonstrated Skill in Project' },
-  { value: 'Shared Knowledge With Team', label: 'Shared Knowledge With Team' },
-  { value: 'Tried New Approach or Tool', label: 'Tried New Approach or Tool' },
-  { value: 'Better Time Management', label: 'Better Time Management' },
-  { value: 'Created a Report / Visual / Output', label: 'Created a Report / Visual / Output' },
-  { value: 'Other', label: 'Other' },
-];
+import apiClient from '../services/apiClient';
+import { skillOptions, practiceTypes, resultOptions } from '../data/data';
 
 const SkillLogForm = ({ user, setAllEntries }) => {
   const [selectedSkills, setSelectedSkills] = useState([]);
@@ -280,26 +161,14 @@ const handleSubmit = async (e) => {
       resultsAchieved: updatedResults,
     };
 
-    const fetchWithTimeout = (url, options, timeout = 5000) => {
-      return Promise.race([
-        fetch(url, options),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Server timeout (5 seconds). Please try again.')), timeout)
-        )
-      ]);
-    };
-
-    const response = await fetchWithTimeout('https://practice-log-9j3d.onrender.com/api/submit-entries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newEntry),
-    });
-
-    const text = await response.text();
-    const data = JSON.parse(text);
-
-    if (!response.ok) {
-      alert(data.error || 'Failed to create entry.');
+    let data;
+    try {
+      const resp = await apiClient.post('/api/entries', newEntry, { timeout: 5000 });
+      data = resp.data;
+    } catch (err) {
+      // normalize axios error
+      const message = err?.response?.data?.error || err?.message || 'Failed to create entry.';
+      alert(message);
       setIsSubmitting(false);
       return;
     }
@@ -309,9 +178,14 @@ const handleSubmit = async (e) => {
     setShowToast(true);
     setTimeout(() => setShowToast(false), 4000);
 
-    setAllEntries(prev => [...prev, data.entry]);
+    if (typeof setAllEntries === 'function') {
+      try {
+        setAllEntries(prev => [...prev, data.entry || data]);
+      } catch (err) {
+        console.warn('setAllEntries failed', err);
+      }
+    }
 
-    // Reset form
     setSelectedSkills([]);
     setHoursSpent('');
     setStartDate('');
@@ -329,7 +203,7 @@ const handleSubmit = async (e) => {
     setShowToast(true);
     setTimeout(() => setShowToast(false), 4000);
   } finally {
-    setIsSubmitting(false); // End loading
+    setIsSubmitting(false);
   }
 };
 
@@ -384,32 +258,30 @@ const handleSubmit = async (e) => {
 
       
         <div style={styles.formGroup}>
-  <label style={styles.label}><b>Date(s) or Date Range *</b></label>
-  <div style={styles.dateRow}>
-    <div style={styles.dateColumn}>
-      <label>Start Date:</label>
-      <input
-        type="date"
-        value={startDate}
-        onChange={handleStartDateChange}
-        required
-        style={styles.input}
-      />
-    </div>
-    <div style={styles.dateColumn}>
-      <label>End Date:</label>
-      <input
-        type="date"
-        value={endDate}
-        onChange={handleEndDateChange}
-        required
-        style={styles.input}
-      />
-    </div>
-  </div>
-</div>
-
-
+        <label style={styles.label}><b>Date(s) or Date Range *</b></label>
+        <div style={styles.dateRow}>
+          <div style={styles.dateColumn}>
+            <label>Start Date:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={handleStartDateChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.dateColumn}>
+            <label>End Date:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={handleEndDateChange}
+              required
+              style={styles.input}
+            />
+          </div>
+        </div>
+      </div>
       
         <div style={styles.formGroup}>
         <label style={styles.label}><b>Types of Practice *</b></label>
@@ -670,4 +542,3 @@ toastError: {
 
 
 export default SkillLogForm;
-

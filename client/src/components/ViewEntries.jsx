@@ -1,124 +1,78 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import entryService from '../services/entryService';
+import Pagination from './Pagination';
+import LoadingSpinner from './LoadingSpinner';
+import SkeletonCard from './SkeletonCard';
 
-const ViewEntries = ({ userEmail }) => {
-  const [allEntries, setAllEntries] = useState([]);
+const ViewEntries = () => {
+  const [entries, setEntries] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [othersAnalytics, setOthersAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(6);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    const fetchEntries = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const res = await fetch('https://practice-log-9j3d.onrender.com/api/get-entries');
-        if (!res.ok) throw new Error('Failed to fetch entries');
-        const data = await res.json();
-        console.log('Fetched entries:', data);
-        setAllEntries(data);
+        const params = { page, limit };
+        if (fromDate) params.fromDate = fromDate;
+        if (toDate) params.toDate = toDate;
+
+        const [entriesRes, analyticsRes, othersRes] = await Promise.all([
+          entryService.getMyEntries(params),
+          entryService.getEntryAnalytics({ fromDate: params.fromDate, toDate: params.toDate }),
+          entryService.getOthersAnalytics({ fromDate: params.fromDate, toDate: params.toDate }),
+        ]);
+
+        setEntries(entriesRes.entries || []);
+        setTotal(entriesRes.total || 0);
+        setAnalytics(analyticsRes.analytics || null);
+        setOthersAnalytics(othersRes.analytics || null);
       } catch (err) {
-        setError(err.message || 'Error fetching entries');
+        const message = err?.response?.data?.error || err?.message || 'Error fetching entries';
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
-    fetchEntries();
-  }, []);
+    fetchData();
+  }, [page, limit, fromDate, toDate]);
 
-  // — All hooks must be at top level, before any returns —
 
-  const normalizedUserEmail = useMemo(() => {
-    return (userEmail || localStorage.getItem('userEmail') || '')
-      .trim()
-      .toLowerCase();
-  }, [userEmail]);
+  const myEntries = entries;
+  const selfSkillHours = analytics?.skillHours || {};
+  const totalSelfTime = analytics?.totalHours || 0;
+  const userEntryCount = analytics?.totalEntries || 0;
+  const avgSelfTime = analytics ? analytics.avgHoursPerEntry : 0;
+  const otherSkillHours = othersAnalytics?.skillHours || {};
+  const otherSkillEntryCounts = othersAnalytics?.skillEntryCounts || {};
+  const othersEntryCount = othersAnalytics?.totalEntries || 0;
+  const totalOtherTime = othersAnalytics?.totalHours || 0;
+  const avgOtherTime = othersAnalytics && othersAnalytics.totalEntries > 0 ? (othersAnalytics.totalHours / othersAnalytics.totalEntries) : 0;
 
-  const filteredEntries = useMemo(() => {
-    return allEntries.filter(entry => {
-      const entryStartDate = new Date(entry.startDate);
-      const entryEndDate = new Date(entry.endDate);
-
-      if (fromDate && entryEndDate < new Date(fromDate)) return false;
-      if (toDate && entryStartDate > new Date(toDate)) return false;
-
-      return true;
-    });
-  }, [allEntries, fromDate, toDate]);
-
-  const {
-    selfSkillHours,
-    otherSkillHours,
-    otherSkillEntryCounts,
-    userEntryCount,
-    othersEntryCount,
-    myEntries
-  } = useMemo(() => {
-    const selfSkillHours = {};
-    const otherSkillHours = {};
-    const otherSkillEntryCounts = {};
-    const myEntries = [];
-
-    let userEntryCount = 0;
-    let othersEntryCount = 0;
-
-    filteredEntries.forEach(entry => {
-      const entryEmail = (entry.user?.email || '').trim().toLowerCase();
-      const isSelf = entryEmail === normalizedUserEmail;
-
-      const hours = parseFloat(entry.hoursSpent) || 0;
-      const skillList = Array.isArray(entry.skills) ? entry.skills : [];
-      const skillHours = hours / (skillList.length || 1);
-
-      if (isSelf) {
-        userEntryCount++;
-        myEntries.push(entry);
-        skillList.forEach(skill => {
-          selfSkillHours[skill] = (selfSkillHours[skill] || 0) + skillHours;
-        });
-      } else {
-        othersEntryCount++;
-        skillList.forEach(skill => {
-          otherSkillHours[skill] = (otherSkillHours[skill] || 0) + skillHours;
-          otherSkillEntryCounts[skill] = (otherSkillEntryCounts[skill] || 0) + 1;
-        });
-      }
-    });
-
-    return {
-      selfSkillHours,
-      otherSkillHours,
-      otherSkillEntryCounts,
-      userEntryCount,
-      othersEntryCount,
-      myEntries,
-    };
-  }, [filteredEntries, normalizedUserEmail]);
-
-  const totalSelfTime = useMemo(() =>
-    Object.values(selfSkillHours).reduce((a, b) => a + b, 0),
-    [selfSkillHours]
-  );
-  const totalOtherTime = useMemo(() =>
-    Object.values(otherSkillHours).reduce((a, b) => a + b, 0),
-    [otherSkillHours]
-  );
-  const avgSelfTime = useMemo(() =>
-    userEntryCount > 0 ? totalSelfTime / userEntryCount : 0,
-    [totalSelfTime, userEntryCount]
-  );
-  const avgOtherTime = useMemo(() =>
-    othersEntryCount > 0 ? totalOtherTime / othersEntryCount : 0,
-    [totalOtherTime, othersEntryCount]
-  );
-
-  // Now do conditional rendering
-  if (loading) {
-    return <div>Loading entries...</div>;
-  }
   if (error) {
     return <div style={{ color: 'red' }}>Error: {error}</div>;
   }
 
-  const formatTime = (hoursValue) => `${Math.round(hoursValue)}h`;
+    const formatTime = (hoursValue) => {
+      const num = Number(hoursValue) || 0;
+      const totalMinutes = Math.round(num * 60);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      if (hours > 0 && minutes > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+      if (hours > 0) return `${hours}h`;
+      if (minutes > 0) return `${minutes} mins`;
+      return `0m`;
+  };
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');
@@ -127,31 +81,44 @@ const ViewEntries = ({ userEmail }) => {
     return `${day}-${month}-${year}`;
   };
 
-  // Collect all skills from selfSkillHours for display
-  const allSkills = Object.keys(selfSkillHours);
+  const allSkills = Object.keys(selfSkillHours || {});
 
   return (
     <div style={styles.page}>
       <div style={styles.headerRow}>
         <h2 style={styles.title}>My Practice Entries</h2>
-        <div style={styles.datePickers}>
+        <div style={styles.filtersRow}>
+          <div style={styles.datePickers}>
           <div style={styles.dateColumn}>
-            <label>From:</label>
+            <label style={{fontSize: '14px'}}>From:</label>
             <input
               type="date"
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+              disabled={loading}
               style={styles.input}
             />
           </div>
           <div style={styles.dateColumn}>
-            <label>To:</label>
+            <label style={{fontSize: '14px'}}>To:</label>
             <input
               type="date"
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+              disabled={loading}
               style={styles.input}
             />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label style={{fontSize: '14px'}}>Limit:</label>
+            <select value={limit} onChange={(e) => { setLimit(parseInt(e.target.value, 10)); setPage(1); }} style={styles.input} disabled={loading}>
+              <option value={5}>5 / page</option>
+              <option value={10}>10 / page</option>
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+            </select>
+          </div>
           </div>
         </div>
       </div>
@@ -162,15 +129,35 @@ const ViewEntries = ({ userEmail }) => {
           <div style={styles.statsRow}>
             <div style={{ ...styles.statsCard, backgroundColor: '#fdaeae9c' }}>
               <h4 style={styles.cardTitle}>Entries Submitted by You</h4>
-              <p style={{ ...styles.countText, color: 'brown' }}>{userEntryCount}</p>
-              <p><strong style={styles.label}>Total Time:</strong> {formatTime(totalSelfTime)}</p>
-              <p><strong style={styles.label}>Avg Time:</strong> {formatTime(avgSelfTime)}</p>
+              {loading ? (
+                <div>
+                  <SkeletonCard width={120} height={36} />
+                  <div style={{ height: 8 }} />
+                  <SkeletonCard width={160} height={14} />
+                </div>
+              ) : (
+                <>
+                  <p style={{ ...styles.countText, color: 'brown' }}>{userEntryCount}</p>
+                  <p><strong style={styles.label}>Total Time:</strong> {formatTime(totalSelfTime)}</p>
+                  <p><strong style={styles.label}>Avg Time:</strong> {formatTime(avgSelfTime)}</p>
+                </>
+              )}
             </div>
             <div style={{ ...styles.statsCard, backgroundColor: '#add8e6' }}>
               <h4 style={styles.cardTitle}>Entries Submitted by Others</h4>
-              <p style={{ ...styles.countText, color: 'blue' }}>{othersEntryCount}</p>
-              <p><strong style={styles.label}>Total Time:</strong> {formatTime(totalOtherTime)}</p>
-              <p><strong style={styles.label}>Avg Time:</strong> {formatTime(avgOtherTime)}</p>
+              {loading ? (
+                <div>
+                  <SkeletonCard width={120} height={36} />
+                  <div style={{ height: 8 }} />
+                  <SkeletonCard width={160} height={14} />
+                </div>
+              ) : (
+                <>
+                  <p style={{ ...styles.countText, color: 'blue' }}>{othersEntryCount}</p>
+                  <p><strong style={styles.label}>Total Time:</strong> {formatTime(totalOtherTime)}</p>
+                  <p><strong style={styles.label}>Avg Time:</strong> {formatTime(avgOtherTime)}</p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -208,31 +195,38 @@ const ViewEntries = ({ userEmail }) => {
 
         <div style={styles.entriesContainer}>
           <h3 style={styles.sectionTitle}>My Entries</h3>
-          {myEntries.length === 0 ? (
+          {loading ? (
+            <div style={{ padding: 24, textAlign: 'center' }}>
+              <LoadingSpinner size={40} />
+            </div>
+          ) : myEntries.length === 0 ? (
             <div style={styles.noEntriesCard}>No entries found</div>
           ) : (
-            <div style={styles.entryGrid}>
-              {[...myEntries]
-                .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
-                .map((entry, idx) => (
-                  <div key={idx} style={styles.entryCard}>
-                    <div style={styles.entryDate}>
-                      Submitted on {formatDate(entry.createdAt || entry.startDate)}
+            <div>
+              <div style={styles.entryGrid}>
+                {[...myEntries]
+                  .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+                  .map((entry, idx) => (
+                    <div key={idx} style={styles.entryCard}>
+                      <div style={styles.entryDate}>
+                        Submitted on {formatDate(entry.createdAt || entry.startDate)}
+                      </div>
+                      <div style={styles.entrypracdate}>
+                        <strong>Practice Date:</strong> {formatDate(entry.startDate)} to {formatDate(entry.endDate)}
+                      </div>
+                      <div style={styles.entrySkill}>
+                        <strong>Skill:</strong> {(entry.skills || []).join(', ') || 'N/A'}
+                      </div>
+                      <div style={styles.entryPracticeType}>
+                        <strong>Practice Type:</strong> {Array.isArray(entry.practiceType) ? entry.practiceType.join(', ') : entry.practiceType || 'N/A'}
+                      </div>
+                      <div style={styles.entryHours}>
+                        Hours Spent: <span style={styles.hoursValue}>{formatTime(parseFloat(entry.hoursSpent) || 0)}</span>
+                      </div>
                     </div>
-                    <div style={styles.entrypracdate}>
-                      <strong>Practice Date:</strong> {formatDate(entry.startDate)} to {formatDate(entry.endDate)}
-                    </div>
-                    <div style={styles.entrySkill}>
-                      <strong>Skill:</strong> {(entry.skills || []).join(', ') || 'N/A'}
-                    </div>
-                    <div style={styles.entryPracticeType}>
-                      <strong>Practice Type:</strong> {Array.isArray(entry.practiceType) ? entry.practiceType.join(', ') : entry.practiceType || 'N/A'}
-                    </div>
-                    <div style={styles.entryHours}>
-                      Hours Spent: <span style={styles.hoursValue}>{formatTime(parseFloat(entry.hoursSpent) || 0)}</span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
+              <Pagination page={page} total={total} limit={limit} onPageChange={(p) => setPage(p)} />
             </div>
           )}
         </div>
@@ -241,9 +235,11 @@ const ViewEntries = ({ userEmail }) => {
   );
 };
 
-// (Include your existing `styles` object here — same as before)
 const styles = {
   page: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     backgroundColor: 'white',
     minHeight: '100vh',
     maxWidth: '1000px',
