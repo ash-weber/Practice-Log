@@ -35,7 +35,6 @@ const getMyEntries = async (req, res) => {
     const order = req.query.order === 'asc' ? 'asc' : 'desc';
     let fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
     let toDate = req.query.toDate ? new Date(req.query.toDate) : null;
-    // normalize to start/end of day for inclusive filtering
     if (fromDate) {
       fromDate.setHours(0, 0, 0, 0);
     }
@@ -49,24 +48,18 @@ const getMyEntries = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email: userEmail } });
     if (!user) return res.json({ entries: [], total: 0, page, limit });
 
-    // build Prisma where clause for date filters (server-side)
-    // Use overlap semantics: include entries that intersect the selected range.
     const where = { userId: user.id };
     const dateConditions = [];
     if (fromDate && toDate) {
-      // entry.startDate <= toDate AND entry.endDate >= fromDate
       dateConditions.push({ startDate: { lte: toDate } });
       dateConditions.push({ endDate: { gte: fromDate } });
     } else if (fromDate) {
-      // any entry that ends on/after fromDate
       dateConditions.push({ endDate: { gte: fromDate } });
     } else if (toDate) {
-      // any entry that starts on/before toDate
       dateConditions.push({ startDate: { lte: toDate } });
     }
     if (dateConditions.length > 0) where.AND = dateConditions;
 
-    // If skill filter is provided, fetch all matching entries for this user (with date filters), filter in JS then paginate
     if (skill) {
       const all = await prisma.entry.findMany({
         where,
@@ -74,7 +67,6 @@ const getMyEntries = async (req, res) => {
         orderBy: { [sortBy]: order },
       });
 
-      // filter entries where skills array contains the skill (defensive checks)
       const filtered = all.filter(e => Array.isArray(e.skills) && e.skills.some(s => String(s).toLowerCase() === skill.toLowerCase()));
       const total = filtered.length;
       const pageEntries = filtered.slice(offset, offset + limit);
@@ -99,7 +91,6 @@ const getMyEntries = async (req, res) => {
   }
 };
 
-// Get analytics for authenticated user (skill-wise totals, counts, total hours)
 const getEntryAnalytics = async (req, res) => {
   try {
     const userEmail = req.user?.email;
@@ -108,7 +99,6 @@ const getEntryAnalytics = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email: userEmail } });
     if (!user) return res.json({ analytics: {} });
 
-    // allow optional date filtering via query params
     let fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
     let toDate = req.query.toDate ? new Date(req.query.toDate) : null;
     if (fromDate) fromDate.setHours(0,0,0,0);
@@ -154,7 +144,6 @@ const getEntryAnalytics = async (req, res) => {
   }
 };
 
-// Analytics for other users (excluding the authenticated user)
 const getOthersAnalytics = async (req, res) => {
   try {
     const userEmail = req.user?.email;
@@ -163,7 +152,6 @@ const getOthersAnalytics = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email: userEmail } });
     if (!user) return res.json({ analytics: {} });
 
-    // allow optional date filtering via query params
     let fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
     let toDate = req.query.toDate ? new Date(req.query.toDate) : null;
     if (fromDate) fromDate.setHours(0,0,0,0);
