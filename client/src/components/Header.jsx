@@ -20,6 +20,12 @@ const Header = ({ user, setUser }) => {
   const handleLogout = (e) => {
     e.preventDefault();
     setUser(null);
+    try {
+      localStorage.removeItem('token');
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('Could not remove token from localStorage', e);
+    }
     navigate('/login');
   };
 

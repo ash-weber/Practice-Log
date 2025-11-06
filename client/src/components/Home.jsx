@@ -1,16 +1,45 @@
 import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import HomeImg from '../assets/logo.png'; 
+import apiClient from '../services/apiClient';
 
-const Home = ({ user, setUser }) => {
+const Home = ({ setUser }) => {
   const navigate = useNavigate();
 
+  // Lightweight JWT payload parser to avoid pulling external package at runtime
+  const parseJwt = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      if (!base64Url) return null;
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  };
+
   const handleGoogleSuccess = (credentialResponse) => {
-    const decoded = jwtDecode(credentialResponse.credential);
-    setUser({ name: decoded.name, email: decoded.email });
-    navigate('/add-new');
+  const decoded = parseJwt(credentialResponse.credential) || {};
+    (async () => {
+      try {
+        const { data } = await apiClient.post('/api/auth/google', {
+          credential: credentialResponse.credential,
+        });
+        const { token, user } = data;
+        if (token) {
+          localStorage.setItem('token', token);
+        }
+        setUser(user || { name: decoded.name, email: decoded.email });
+        navigate('/add-new');
+      } catch (err) {
+        console.error('Login error', err?.response || err.message);
+        alert('Login failed. Please try again.');
+      }
+    })();
   };
 
   return (
@@ -25,7 +54,6 @@ const Home = ({ user, setUser }) => {
       <hr/>
       <br/>
       <div style={styles.loginBox}>
-        {/* <h3>Sign in with Google</h3> */}
         <p style={styles.note}>
           Please use the same Google account used for <strong>CareerSheets</strong> to link this data to your skills/profile.
         </p>

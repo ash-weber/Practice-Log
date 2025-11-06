@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SkillLogForm from './components/SkillLogForm';
 import ViewEntries from './components/ViewEntries';
-import LoginPage from './components/Home';
 import Home from './components/Home';
 import Layout from './components/Layout';
 
@@ -11,9 +10,6 @@ const App = () => {
     const storedUser = localStorage.getItem('user');
     return storedUser ? JSON.parse(storedUser) : null;
   });
-
-  const [allEntries, setAllEntries] = useState([]);
-
 
   useEffect(() => {
     if (user) {
@@ -26,23 +22,17 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        
-        <Route path="/login" element={<LoginPage setUser={setUser} />} />
+        <Route path="/login" element={<Home setUser={setUser} />} />
 
-       
         {user && (
           <Route element={<Layout user={user} setUser={setUser} />}>
             <Route path="/" element={<Home user={user} setUser={setUser} />} />
-            <Route path="/add-new" element={<SkillLogForm user={user} setAllEntries={setAllEntries} />} />
-           <Route
-              path="/view-entries"
-              element={<ViewEntries userEmail={user.email} />}
-            />
+            <Route path="/add-new" element={<SkillLogForm user={user} />} />
+            <Route path="/view-entries" element={<ViewEntries userEmail={user.email} />} />
           </Route>
         )}
 
-     
-        <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
+        <Route path="*" element={<Navigate to={user ? '/' : '/login'} />} />
       </Routes>
     </Router>
   );
